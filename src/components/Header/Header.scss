@@ -1,0 +1,24 @@
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background-color: white;
+  h4 {
+    font-size: var(--font-xl);
+    font-weight: var(--font-weight-medium);
+    font-family: "Pretendard-ExtraBold";
+  }
+  button {
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border-ligthblue);
+    border-radius: 0.7rem;
+    color: var(--blue);
+    font-family: "Pretendard-Medium";
+    font-size: var(--font-l);
+  }
+}

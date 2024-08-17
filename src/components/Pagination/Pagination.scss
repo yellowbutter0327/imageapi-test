@@ -1,0 +1,36 @@
+.pagination-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  padding: 1.5rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-top: 2rem;
+  background-color: var(--white);
+
+  .pagination-button {
+    font-size: var(--font-l);
+    margin: 0 2rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.3rem;
+
+    &.move {
+      border: 1px solid var(--gray);
+    }
+
+    &.on {
+      color: var(--blue);
+      border: 1px solid var(--blue);
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .pagination-wrapper {
+    .pagination-button {
+      margin: 0 0.5rem;
+    }
+  }
+}

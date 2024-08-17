@@ -1,0 +1,31 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+@font-face {
+  font-family: "Pretendard-ExtraBold";
+  font-style: normal;
+  font-weight: 100;
+  src: url("../assets/fonts/Pretendard-ExtraBold.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Pretendard-Medium";
+  font-style: normal;
+  font-weight: 100;
+  src: url("../assets/fonts/Pretendard-Medium.woff") format("woff");
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-size: 10px;
+  overflow-x: hidden;
+}
+
+#root {
+  height: 100%;
+}
