@@ -1,0 +1,12 @@
+node_modules
+# Ignore artifacts:
+build
+coverage
+dist
+.next
+out
+next-env.d.ts
+*.tsbuildinfo
+playwright-report
+test-results
+package-lock.json
