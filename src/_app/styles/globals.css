@@ -404,17 +404,23 @@
   }
   .results-title {
     display: flex;
+    min-width: 0;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 8px 14px;
   }
   .results-title h2 {
+    min-width: 0;
+    overflow-wrap: anywhere;
     font-size: 19px;
     font-weight: 700;
     letter-spacing: -0.04em;
   }
   .results-title h2 span {
     font-weight: 500;
+  }
+  .results-controls {
+    flex-shrink: 0;
   }
   .results-title p {
     color: var(--color-muted);

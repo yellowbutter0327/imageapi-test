@@ -17,3 +17,4 @@ export type {
   SearchResponse,
   Sort,
 } from './model/search';
+export { ImageCard } from './ui/image-card';
