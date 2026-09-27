@@ -16,6 +16,20 @@ export default defineConfig({
       name: 'mobile',
       use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium' },
     },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 1440, height: 1000 },
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        viewport: { width: 1440, height: 1000 },
+      },
+    },
   ],
   webServer: {
     command: 'npm run start -- --hostname 127.0.0.1 --port 3100',

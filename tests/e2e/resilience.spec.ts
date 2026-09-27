@@ -248,6 +248,85 @@ test('a failed image keeps its card size and original link', async ({
   ).toHaveAttribute('href', '/demo/1.svg');
 });
 
+test('opening a preview loads the original instead of enlarging the thumbnail', async ({
+  page,
+  isMobile,
+}) => {
+  if (!isMobile) await page.setViewportSize({ width: 1440, height: 720 });
+  const original = 'https://images.example.test/original.svg';
+  let originalRequests = 0;
+  await page.route(original, (route) => {
+    originalRequests++;
+    return route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640"><rect width="960" height="640" fill="purple"/></svg>',
+    });
+  });
+  await page.route('**/api/search?**', (route) => {
+    const data = fixture('원본 화질', 1);
+    data.items[0]!.title =
+      '긴 상품명과 여러 검색어가 포함된 이미지 제목 '.repeat(8);
+    data.items[0]!.original = original;
+    return route.fulfill({ json: data });
+  });
+  await page.goto('/');
+  await expect(cards(page).first()).toBeVisible();
+  expect(originalRequests).toBe(0);
+  await cards(page).first().click();
+  const image = page.getByRole('dialog').getByRole('img');
+  await expect(image).toHaveAttribute('src', original);
+  await expect
+    .poll(() =>
+      image.evaluate((element: HTMLImageElement) => element.naturalWidth),
+    )
+    .toBe(960);
+  await expect(image).toHaveCSS('opacity', '1');
+  await expect(
+    page.getByRole('link', { name: /원본 이미지 열기/ }),
+  ).toBeInViewport({ ratio: 1 });
+  await expect(
+    page.getByRole('button', { name: '다음 이미지' }),
+  ).toBeInViewport({ ratio: 1 });
+});
+
+test('an unavailable original falls back without upscaling and the next image retries its own original', async ({
+  page,
+}) => {
+  const original = 'https://images.example.test/unavailable.svg';
+  await page.route(original, (route) => route.abort());
+  await page.route('**/demo/1.svg', (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="purple"/></svg>',
+    }),
+  );
+  await page.route('**/api/search?**', (route) => {
+    const data = fixture('이미지 대체', 3);
+    data.items[0]!.original = original;
+    return route.fulfill({ json: data });
+  });
+  await page.goto('/');
+  await cards(page).first().click();
+  const dialog = page.getByRole('dialog');
+  const image = dialog.getByRole('img');
+  await expect(dialog).toContainText(
+    '원본을 불러오지 못해 작은 미리보기로 표시했어요.',
+  );
+  await expect(image).toHaveAttribute('src', /\/demo\/1\.svg$/);
+  const size = await image.boundingBox();
+  expect(size!.width).toBeLessThanOrEqual(96);
+  expect(size!.height).toBeLessThanOrEqual(96);
+  await expect(
+    dialog.getByRole('link', { name: /원본 이미지 열기/ }),
+  ).toHaveAttribute('href', original);
+  const next = dialog.getByRole('button', { name: '다음 이미지' });
+  await next.focus();
+  await next.press('Enter');
+  await expect(image).toHaveAttribute('src', /\/demo\/2\.svg$/);
+  await expect(dialog).not.toContainText('작은 미리보기로 표시했어요.');
+  await expect(next).toBeFocused();
+});
+
 test('a stale refetch failure preserves the last successful result', async ({
   page,
 }) => {

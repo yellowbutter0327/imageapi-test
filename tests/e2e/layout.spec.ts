@@ -7,7 +7,7 @@ for (const width of [390, 768, 1440, 1920]) {
       testInfo.project.name !== 'desktop',
       'Visual reference is recorded once in Chromium.',
     );
-    await page.setViewportSize({ width, height: 1000 });
+    await page.setViewportSize({ width, height: width >= 768 ? 720 : 844 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await expect(
@@ -46,6 +46,15 @@ for (const width of [390, 768, 1440, 1920]) {
       .first()
       .click();
     await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /원본 이미지 열기/ }),
+    ).toBeInViewport({ ratio: 1 });
+    await expect(
+      page.getByRole('button', { name: '다음 이미지' }),
+    ).toBeInViewport({ ratio: 1 });
+    await expect(
+      page.getByRole('button', { name: '미리보기 닫기' }),
+    ).toBeInViewport({ ratio: 1 });
     await page.keyboard.press('Tab');
     expect(
       await page
