@@ -1,6 +1,6 @@
-import 'server-only';
 import { searchSchema } from '@/entities/image';
-import { searchImages } from '@/entities/image/index.server';
+import 'server-only';
+import { cachedSearchImages } from '@/entities/image/index.server';
 import { SearchError } from '@/shared/api';
 import { getSearchConfig } from '@/shared/config/index.server';
 
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         400,
         'INVALID_INPUT',
       );
-    const data = await searchImages(
+    const data = await cachedSearchImages(
       parsed.data,
       getSearchConfig(),
       request.signal,

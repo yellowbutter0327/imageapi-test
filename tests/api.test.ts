@@ -105,7 +105,9 @@ describe('Next search route', () => {
           ),
       );
       const response = await GET(request());
-      expect(response.status).toBe(status === 429 ? 429 : 502);
+      expect(response.status).toBe(
+        status === 429 ? 429 : status === 401 ? 503 : 502,
+      );
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       expect(response.headers.get('X-Request-Id')).toBeTruthy();
       expect(await response.text()).not.toContain('private-provider-details');

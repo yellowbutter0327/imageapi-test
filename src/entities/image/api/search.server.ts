@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { SearchError } from '@/shared/api';
+import { SearchError, retryAfterSeconds } from '@/shared/api';
 import type { SearchConfig } from '@/shared/config/index.server';
 import {
   MAX_RESULTS,
@@ -71,10 +71,16 @@ export async function searchImages(
     if (!response.ok) {
       if (response.status === 429)
         throw new SearchError(
-          '검색 요청이 많아요. 1분 후 다시 시도해주세요.',
+          '검색 요청이 많아요. 잠시 후 다시 시도해주세요.',
           429,
           'RATE_LIMITED',
-          60,
+          retryAfterSeconds(response.headers.get('Retry-After')),
+        );
+      if ([401, 403].includes(response.status))
+        throw new SearchError(
+          '검색 서비스 설정을 확인해주세요.',
+          503,
+          'CONFIGURATION_ERROR',
         );
       throw new SearchError(
         '이미지 검색 서비스에 연결할 수 없어요. 잠시 후 다시 시도해주세요.',
