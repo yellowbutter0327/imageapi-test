@@ -48,17 +48,27 @@
 
 ## 실행 방법
 
-Node.js 24가 필요합니다.
+설치 없이 사용하려면 [배포 사이트](https://imageapi-test.vercel.app)에 접속하면 됩니다.
+
+아래는 코드를 내려받아 내 컴퓨터에서 실행하는 방법입니다. 개발 환경은 Node.js 24입니다.
 
 ```bash
+# 프로젝트에서 사용하는 패키지 설치
 npm ci
+
+# 로컬 설정 파일 생성
 cp .env.example .env.local
+
+# 개발 서버 실행
 npm run dev
 ```
 
-`http://localhost:3000`에서 확인할 수 있습니다. 로컬 기본 설정은 API 키 없이 실행하는 샘플 모드이며, 배포 사이트는 네이버 API를 사용합니다.
+브라우저에서 `http://localhost:3000`에 접속합니다. 기본 설정에서는 네이버 검색 대신 프로젝트에 포함된 샘플 이미지를 보여줍니다. `티셔츠`, `포스터`, `패턴`으로 검색과 페이지 이동을 확인할 수 있습니다.
 
-실제 네이버 검색을 사용하려면 `.env.local`에 다음 값을 설정한 뒤 서버를 다시 실행합니다.
+<details>
+<summary>내 컴퓨터에서도 실제 네이버 검색을 사용하려면</summary>
+
+네이버 검색 API를 사용할 수 있는 Client ID와 Client Secret을 발급받아 `.env.local`에 입력합니다.
 
 ```dotenv
 SEARCH_MODE=live
@@ -66,9 +76,11 @@ NAVER_CLIENT_ID=발급받은_ID
 NAVER_CLIENT_SECRET=발급받은_SECRET
 ```
 
-공유 캐시와 호출 제한을 사용하려면 `UPSTASH_REDIS_REST_URL`과 `UPSTASH_REDIS_REST_TOKEN`도 설정합니다. 기본 한도는 앱 전체 기준 분당 60회, 첫 요청부터 24시간 동안 2,000회입니다. Redis를 연결하지 않으면 공유 캐시와 호출 제한은 적용되지 않습니다. 설정 항목은 [`.env.example`](./.env.example)에 있습니다.
+실행 중인 서버를 종료하고 `npm run dev`로 다시 시작하면 실제 검색 결과가 표시됩니다. 발급받은 키가 들어 있는 `.env.local`은 Git에 올리지 않습니다.
 
-Vercel에서도 같은 환경 변수를 등록합니다. 인증 키에는 `NEXT_PUBLIC_` 접두사를 붙이지 않습니다.
+Redis는 같은 검색 결과를 재사용하고 앱 전체의 API 호출 수를 제한하기 위한 선택 설정입니다. 연결 방법에 필요한 환경 변수는 [`.env.example`](./.env.example)에 있습니다.
+
+</details>
 
 ## 테스트
 
