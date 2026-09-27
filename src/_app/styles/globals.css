@@ -742,9 +742,11 @@
       width: calc(100% - 48px);
     }
     .hero-art {
-      width: 220px;
-      transform: scale(0.82);
-      margin-right: -20px;
+      width: 260px;
+      transform: scale(0.75);
+      transform-origin: right center;
+      margin-left: -40px;
+      margin-right: 0;
     }
     .header-caption {
       display: none;
