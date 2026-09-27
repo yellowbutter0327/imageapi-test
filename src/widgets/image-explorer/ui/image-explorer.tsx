@@ -193,6 +193,7 @@ export function ImageExplorer() {
               totalPages={totalPages}
               onChange={(page) => {
                 update({ page });
+                results.current?.focus({ preventScroll: true });
                 results.current?.scrollIntoView({
                   block: 'start',
                   behavior: 'instant',

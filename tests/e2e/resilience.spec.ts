@@ -21,6 +21,40 @@ async function search(page: Page, q: string) {
 }
 const cards = (page: Page) => page.getByRole('button', { name: /상세 보기/ });
 
+test('keyboard pagination keeps focus on results while the next page loads', async ({
+  page,
+}) => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/search?**', async (route) => {
+    const url = new URL(route.request().url());
+    const currentPage = url.searchParams.get('page');
+    if (currentPage === '2') await pending;
+    await route.fulfill({ json: fixture(`page-${currentPage}`) });
+  });
+  await page.goto('/');
+  const next = page.getByRole('button', { name: '다음 페이지' });
+  await expect(next).toBeEnabled();
+  await next.focus();
+  await next.press('Enter');
+  const results = page.getByRole('region', { name: '검색 결과', exact: true });
+  try {
+    await expect(results).toHaveAttribute('aria-busy', 'true');
+    await expect(next).toHaveCount(0);
+    await expect(results).toBeFocused();
+  } finally {
+    release();
+  }
+  await expect(cards(page).first()).toHaveAccessibleName(
+    'page-2 이미지 1 상세 보기',
+  );
+  await expect(results).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('combobox')).toBeFocused();
+});
+
 test('a late previous response never replaces the latest search', async ({
   page,
 }) => {
