@@ -6,11 +6,11 @@ import {
   imageSearchKey,
   pageSizeForWidth,
   readSearchParams,
-  searchResponseSchema,
   toSearchParams,
   type SearchParams,
 } from '@/entities/image';
-import { SearchError } from '@/shared/api';
+import { fetchImages, shouldRetrySearch } from '../api/search';
+import { useSearchCooldown } from './cooldown';
 
 const mediaQueries = [
   '(min-width: 1200px)',
@@ -26,33 +26,9 @@ function subscribe(onChange: () => void) {
 const getSnapshot = () => pageSizeForWidth(window.innerWidth);
 const getServerSnapshot = () => null;
 
-export async function fetchImages(params: SearchParams, signal: AbortSignal) {
-  const response = await fetch(`/api/search?${toSearchParams(params)}`, {
-    signal,
-  });
-  if (!response.ok) {
-    const message =
-      response.status === 429
-        ? '검색 요청이 많아요. 1분 후 다시 시도해주세요.'
-        : response.status === 503
-          ? '검색 서비스가 아직 준비되지 않았어요. 잠시 후 다시 시도해주세요.'
-          : response.status === 504
-            ? '검색 시간이 초과되었어요. 다시 시도해주세요.'
-            : '이미지를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
-    throw new SearchError(message, response.status, 'SEARCH_FAILED');
-  }
-  const parsed = searchResponseSchema.safeParse(await response.json());
-  if (!parsed.success)
-    throw new SearchError(
-      '검색 결과를 확인할 수 없어요. 다시 시도해주세요.',
-      502,
-      'INVALID_RESPONSE',
-    );
-  return parsed.data;
-}
-
 export function useImageSearch() {
   const url = useSearchParams();
+  const retryIn = useSearchCooldown();
   const pageSize = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -70,19 +46,15 @@ export function useImageSearch() {
 
   const query = useQuery({
     queryKey: params ? imageSearchKey(params) : ['images', 'awaiting-viewport'],
-    enabled: params !== null,
+    enabled: params !== null && retryIn === 0,
     queryFn: ({ signal }) => {
       if (!params) throw new Error('Viewport has not hydrated');
       return fetchImages(params, signal);
     },
     staleTime: 30_000,
     gcTime: 5 * 60_000,
-    retry: (attempt, error) =>
-      attempt < 1 &&
-      !(
-        error instanceof SearchError &&
-        (error.status < 500 || error.status === 503)
-      ),
+    retry: shouldRetrySearch,
+    retryDelay: 500,
     refetchOnWindowFocus: false,
   });
   function update(changes: Partial<SearchParams>) {
@@ -92,5 +64,8 @@ export function useImageSearch() {
     if (canonical !== nextUrl)
       window.history.pushState(null, '', `?${nextUrl}`);
   }
-  return { params, query, update };
+  async function refresh() {
+    if (!retryIn && !query.isFetching) await query.refetch();
+  }
+  return { params, query, update, retryIn, refresh };
 }

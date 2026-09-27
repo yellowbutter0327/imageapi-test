@@ -5,7 +5,6 @@ import {
   DEFAULT_QUERY,
   ImageCard,
   MAX_RESULTS,
-  type ImageItem,
   type Sort,
 } from '@/entities/image';
 import { useImageSearch, SearchForm } from '@/features/search-images';
@@ -15,8 +14,23 @@ import { Pagination } from './pagination';
 import { SearchSkeleton } from './search-skeleton';
 
 export function ImageExplorer() {
-  const { params, query, update } = useImageSearch();
-  const [selected, setSelected] = useState<ImageItem | null>(null);
+  const { params, query, update, retryIn, refresh } = useImageSearch();
+  const [selection, setSelection] = useState<{
+    key: string;
+    id: string;
+  } | null>(null);
+  const selectionKey = JSON.stringify(params);
+  if (selection && selection.key !== selectionKey) setSelection(null);
+  const items = query.data?.items ?? [];
+  const selectedIndex =
+    selection?.key === selectionKey
+      ? items.findIndex((item) => item.id === selection.id)
+      : -1;
+  const selected = items[selectedIndex] ?? null;
+  function movePreview(direction: number) {
+    const next = items[selectedIndex + direction];
+    if (next) setSelection({ key: selectionKey, id: next.id });
+  }
   const opener = useRef<HTMLElement | null>(null);
   const results = useRef<HTMLElement | null>(null);
   const totalPages = params
@@ -36,6 +50,7 @@ export function ImageExplorer() {
         aria-label="검색 결과"
         aria-busy={query.isFetching || !params}
         ref={results}
+        tabIndex={-1}
       >
         <div className="results-toolbar">
           <div className="results-title">
@@ -90,14 +105,41 @@ export function ImageExplorer() {
               ? '검색에 실패했습니다.'
               : `${query.data?.total ?? 0}개 결과 중 ${params.page}페이지입니다.`}
         </p>
-        {isLoading ? (
+        {query.data && query.isFetching && (
+          <p role="status" className="demo-note">
+            검색 결과를 갱신하고 있어요.
+          </p>
+        )}
+        {query.data && (query.isError || retryIn > 0) && (
+          <div className="refresh-notice" role="alert">
+            <p>
+              {retryIn
+                ? `${retryIn}초 후 다시 검색할 수 있어요.`
+                : '갱신하지 못했어요. 마지막으로 받은 결과를 표시합니다.'}
+            </p>
+            <Button
+              variant="secondary"
+              disabled={retryIn > 0 || query.isFetching}
+              onClick={() => void refresh()}
+            >
+              다시 시도
+            </Button>
+          </div>
+        )}
+        {retryIn > 0 && !query.data ? (
+          <div className="state-panel" role="alert">
+            <h3>검색 요청이 많아요.</h3>
+            <p>{retryIn}초 후 다시 검색할 수 있어요.</p>
+            <Button disabled>잠시 기다려주세요</Button>
+          </div>
+        ) : isLoading ? (
           <SearchSkeleton />
-        ) : query.isError ? (
+        ) : query.isError && !query.data ? (
           <div className="state-panel" role="alert">
             <ImageOff size={32} aria-hidden="true" />
             <h3>검색 결과를 불러오지 못했어요.</h3>
             <p>{query.error.message}</p>
-            <Button onClick={() => void query.refetch()}>
+            <Button onClick={() => void refresh()} disabled={query.isFetching}>
               <RotateCcw size={16} aria-hidden="true" />
               다시 시도
             </Button>
@@ -124,13 +166,13 @@ export function ImageExplorer() {
                 priority={index === 0}
                 onSelect={() => {
                   opener.current = document.activeElement as HTMLElement;
-                  setSelected(image);
+                  setSelection({ key: selectionKey, id: image.id });
                 }}
               />
             ))}
           </ul>
         )}
-        {query.data && !query.isError && (
+        {query.data && (
           <>
             <div className="results-footnote">
               <span>{params?.pageSize ?? '—'}개씩 둘러보기</span>
@@ -155,11 +197,20 @@ export function ImageExplorer() {
           </>
         )}
       </section>
-      <ImagePreview
-        image={selected}
-        onClose={() => setSelected(null)}
-        returnFocus={() => opener.current?.focus()}
-      />
+      {selected && (
+        <ImagePreview
+          image={selected}
+          onClose={() => setSelection(null)}
+          position={selectedIndex + 1}
+          total={items.length}
+          onPrevious={() => movePreview(-1)}
+          onNext={() => movePreview(1)}
+          returnFocus={() => {
+            if (opener.current?.isConnected) opener.current.focus();
+            else results.current?.focus();
+          }}
+        />
+      )}
     </>
   );
 }
