@@ -1,19 +1,23 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { ImageOff, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import {
   DEFAULT_QUERY,
   ImageCard,
   MAX_RESULTS,
+  type ImageItem,
   type Sort,
 } from '@/entities/image';
 import { useImageSearch, SearchForm } from '@/features/search-images';
+import { ImagePreview } from '@/features/preview-image';
 import { Button } from '@/shared/ui';
 import { Pagination } from './pagination';
 import { SearchSkeleton } from './search-skeleton';
 
 export function ImageExplorer() {
   const { params, query, update } = useImageSearch();
+  const [selected, setSelected] = useState<ImageItem | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
   const results = useRef<HTMLElement | null>(null);
   const totalPages = params
     ? Math.ceil((query.data?.total ?? 0) / params.pageSize)
@@ -119,7 +123,8 @@ export function ImageExplorer() {
                 image={image}
                 priority={index === 0}
                 onSelect={() => {
-                  window.open(image.original, '_blank', 'noopener,noreferrer');
+                  opener.current = document.activeElement as HTMLElement;
+                  setSelected(image);
                 }}
               />
             ))}
@@ -150,6 +155,11 @@ export function ImageExplorer() {
           </>
         )}
       </section>
+      <ImagePreview
+        image={selected}
+        onClose={() => setSelected(null)}
+        returnFocus={() => opener.current?.focus()}
+      />
     </>
   );
 }
