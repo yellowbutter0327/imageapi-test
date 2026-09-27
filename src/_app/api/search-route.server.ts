@@ -1,6 +1,8 @@
-import { searchSchema } from '@/entities/image';
 import 'server-only';
-import { cachedSearchImages } from '@/entities/image/index.server';
+import {
+  cachedSearchImages,
+  searchSchema,
+} from '@/entities/image/index.server';
 import { SearchError } from '@/shared/api';
 import { getSearchConfig } from '@/shared/config/index.server';
 

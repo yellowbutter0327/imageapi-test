@@ -6,7 +6,6 @@ export {
   pageSizeForWidth,
   readSearchParams,
   resizePage,
-  searchSchema,
   searchResponseSchema,
   toSearchParams,
 } from './model/search';

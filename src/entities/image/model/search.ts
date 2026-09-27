@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 export const PAGE_SIZES = [12, 20, 28, 40] as const;
 export type PageSize = (typeof PAGE_SIZES)[number];
@@ -12,52 +12,35 @@ export type SearchParams = {
   pageSize: PageSize;
 };
 
-const positiveInteger = z
-  .string()
-  .regex(/^[1-9]\d*$/)
-  .transform(Number)
-  .pipe(z.number().int().positive().safe());
-export const searchSchema = z
-  .object({
-    q: z.string().trim().min(1).max(100),
-    sort: z.enum(['sim', 'date']).default('sim'),
-    page: positiveInteger.default(1),
-    pageSize: z
-      .enum(['12', '20', '28', '40'])
-      .transform((value) => Number(value) as PageSize),
-  })
-  .refine((params) => params.page <= Math.ceil(MAX_RESULTS / params.pageSize), {
-    message: 'Page is outside the searchable range',
-    path: ['page'],
-  });
-
-const remoteUrl = z.url().refine((value) => {
-  try {
-    const url = new URL(value);
-    return (
-      ['https:', 'http:'].includes(url.protocol) &&
-      !url.username &&
-      !url.password
-    );
-  } catch {
-    return false;
-  }
-});
+const remoteUrl = z.url().check(
+  z.refine((value) => {
+    try {
+      const url = new URL(value);
+      return (
+        ['https:', 'http:'].includes(url.protocol) &&
+        !url.username &&
+        !url.password
+      );
+    } catch {
+      return false;
+    }
+  }),
+);
 const imageUrl = z.union([
   remoteUrl,
-  z.string().regex(/^\/demo\/[1-9]\d*\.svg$/),
+  z.string().check(z.regex(/^\/demo\/[1-9]\d*\.svg$/)),
 ]);
 export const imageSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().check(z.minLength(1)),
   title: z.string(),
   thumbnail: imageUrl,
   original: imageUrl,
-  width: z.number().int().nonnegative(),
-  height: z.number().int().nonnegative(),
+  width: z.int().check(z.nonnegative()),
+  height: z.int().check(z.nonnegative()),
 });
 export const searchResponseSchema = z.object({
-  items: z.array(imageSchema).max(40),
-  total: z.number().int().min(0).max(MAX_RESULTS),
+  items: z.array(imageSchema).check(z.maxLength(40)),
+  total: z.int().check(z.minimum(0), z.maximum(MAX_RESULTS)),
   mode: z.enum(['demo', 'live']),
 });
 export type ImageItem = z.infer<typeof imageSchema>;
@@ -78,11 +61,13 @@ export function readSearchParams(
   const parsedSize = Number(url.get('pageSize'));
   const previousSize =
     PAGE_SIZES.find((size) => size === parsedSize) ?? pageSize;
-  const parsedPage = positiveInteger.safeParse(url.get('page') ?? '1');
+  const rawPage = url.get('page') ?? '1';
+  const parsedPage = Number(rawPage);
   const page =
-    parsedPage.success &&
-    parsedPage.data <= Math.ceil(MAX_RESULTS / previousSize)
-      ? parsedPage.data
+    /^[1-9]\d*$/.test(rawPage) &&
+    Number.isSafeInteger(parsedPage) &&
+    parsedPage <= Math.ceil(MAX_RESULTS / previousSize)
+      ? parsedPage
       : 1;
   return {
     q: url.get('q')?.trim().slice(0, 100) || DEFAULT_QUERY,

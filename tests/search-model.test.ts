@@ -1,10 +1,10 @@
+import { searchSchema } from '@/entities/image/index.server';
 import { describe, expect, it } from 'vitest';
 import {
   imageSearchKey,
   pageSizeForWidth,
   readSearchParams,
   resizePage,
-  searchSchema,
   searchResponseSchema,
   toSearchParams,
 } from '@/entities/image';

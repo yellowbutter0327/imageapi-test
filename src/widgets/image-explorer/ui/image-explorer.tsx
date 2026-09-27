@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ImageOff, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import {
   DEFAULT_QUERY,
@@ -8,7 +9,11 @@ import {
   type Sort,
 } from '@/entities/image';
 import { useImageSearch, SearchForm } from '@/features/search-images';
-import { ImagePreview } from '@/features/preview-image';
+const ImagePreview = dynamic(
+  () =>
+    import('@/features/preview-image').then((module) => module.ImagePreview),
+  { ssr: false },
+);
 import { Button } from '@/shared/ui';
 import { Pagination } from './pagination';
 import { SearchSkeleton } from './search-skeleton';
