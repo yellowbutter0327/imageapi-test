@@ -136,4 +136,40 @@ describe('Next search route', () => {
     );
     expect((await GET(request())).status).toBe(504);
   });
+  it('classifies a provider connection failure as retryable', async () => {
+    live();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('private-connection-details')),
+    );
+    const response = await GET(request());
+    expect(response.status).toBe(502);
+    const data = await response.json();
+    expect(data.code).toBe('UPSTREAM_ERROR');
+    expect(JSON.stringify(data)).not.toContain('private-connection-details');
+  });
+  it.each(['{broken', JSON.stringify({ items: [] })])(
+    'keeps malformed provider data non-retryable: %s',
+    async (body) => {
+      live();
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(body)));
+      const response = await GET(request());
+      expect(response.status).toBe(502);
+      expect((await response.json()).code).toBe('INVALID_UPSTREAM');
+    },
+  );
+  it('does not classify an aborted provider request as a connection failure', async () => {
+    live();
+    const controller = new AbortController();
+    controller.abort();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new DOMException('cancelled', 'AbortError')),
+    );
+    const response = await GET(
+      new Request(request(), { signal: controller.signal }),
+    );
+    expect(response.status).toBe(499);
+    expect((await response.json()).code).toBe('CANCELLED');
+  });
 });

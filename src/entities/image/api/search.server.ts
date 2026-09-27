@@ -67,6 +67,18 @@ export async function searchImages(
       signal: AbortSignal.any([signal, timeout]),
       cache: 'no-store',
       redirect: 'error',
+    }).catch((error: unknown) => {
+      if (
+        signal.aborted ||
+        timeout.aborted ||
+        (error instanceof Error && error.name === 'TimeoutError')
+      )
+        throw error;
+      throw new SearchError(
+        '이미지 검색 서비스에 연결할 수 없어요. 잠시 후 다시 시도해주세요.',
+        502,
+        'UPSTREAM_ERROR',
+      );
     });
     if (!response.ok) {
       if (response.status === 429)

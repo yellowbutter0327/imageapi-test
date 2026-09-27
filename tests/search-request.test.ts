@@ -53,6 +53,21 @@ describe('retry policy and response validation', () => {
       fetchImages(params, new AbortController().signal),
     ).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
   });
+  it.each([
+    ['UPSTREAM_ERROR', true],
+    ['INVALID_UPSTREAM', false],
+  ])('applies the retry policy to provider error %s', async (code, retry) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(Response.json({ code }, { status: 502 })),
+    );
+    const error = await fetchImages(params, new AbortController().signal).catch(
+      (reason: unknown) => reason,
+    );
+    expect(error).toBeInstanceOf(SearchError);
+    expect(shouldRetrySearch(0, error as SearchError)).toBe(retry);
+    expect(shouldRetrySearch(1, error as SearchError)).toBe(false);
+  });
   it('does not convert cancellation into a retryable network failure', async () => {
     const controller = new AbortController();
     controller.abort();
